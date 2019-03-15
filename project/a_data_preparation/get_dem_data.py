@@ -20,3 +20,7 @@ def _reproject(points, source_crs, destination_crs):
 
 def download_area(bounds, crs):
     pass
+
+
+if __name__ == '__main__':
+    pass

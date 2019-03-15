@@ -1,19 +1,16 @@
 """Climate Datasets Downloader
-
 This script allows the user to download climate datasets from the Coperniucs Climate Change Serivice
 by cdsapi package and terminal commands.
-
 Actually class retrieves ERA5 hourly data on single levels from 1979 to present, for all months,
 all days in a month, and all hours in a day in the NetCDF format
 (https://cds.climate.copernicus.eu/cdsapp#!/dataset/reanalysis-era5-single-levels?tab=form):
 - 2m temperature,
-
-
 Author: Szymon Moliński, Data Lions
 Last change: 13-03-2019
 Change by: SM
 ...
 """
+
 from operator import itemgetter
 import cdsapi
 
@@ -21,7 +18,6 @@ import cdsapi
 class DataRequest:
     """Class is a container for available data types and usually returns request form based on the user's input
     in the terminal.
-
     New datasets should be incorporated into a private method _initialize_datasets()"""
 
     def __init__(self, interactive=False, output_folder=''):
@@ -81,10 +77,8 @@ class DataRequest:
         """If you want to add new datasets do it inside this method.
         To make everything readable and clear create new variable for each parameter and update data type dictionary
         and description text.
-
         Example: 2m Temperature
         temperature2m = ['2m_temperature', '2m Temperature;]
-
         Example: Some Parameter
         some_parameter = ['variable name for cds api request', 'variable name']"""
 

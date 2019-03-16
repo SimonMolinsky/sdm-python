@@ -43,10 +43,10 @@ class ModisRequest:
         """If you want to add new datasets do it inside this method.
         To make everything readable and clear create new variable for each parameter and update data type dictionary
         and description text.
-        Example: 2m Temperature
-        temperature2m = ['2m_temperature', '2m Temperature;]
+        Example: MODIS/Terra Land Surface Temperature and Emissivity Monthly L3 Global 6 km Grid SIN V006
+        temperature2m = ['MOD11B3.006', 'MODIS/Terra Land Surface Temperature and Emissivity Monthly L3 Global 6 km Grid SIN V006']
         Example: Some Parameter
-        some_parameter = ['variable name for cds api request', 'variable name']"""
+        some_parameter = ['variable name for modis api request', 'variable name']"""
 
         # VARIABLES
         # Create variables based on this example below
@@ -138,7 +138,7 @@ class ModisRequest:
 
         # Output file
         output_filename = self.output
-        name = input('Please, provide output foldername and press RETURN:\n')
+        name = input('Please, provide output filename and press RETURN:\n')
         input_info.append(output_filename + name)
         return input_info
 

@@ -39,8 +39,8 @@ class DEMRequest:
         """If you want to add new datasets do it inside this method.
         To make everything readable and clear create new variable for each parameter and update data type dictionary
         and description text.
-        Example: 2m Temperature
-        temperature2m = ['2m_temperature', '2m Temperature;]
+        Example: SRTM 30m Global 1 arc second V003
+        temperature2m = ['SRTM1', 'SRTM 30m Global 1 arc second V003;]
         Example: Some Parameter
         some_parameter = ['variable name for api request', 'variable name']"""
 

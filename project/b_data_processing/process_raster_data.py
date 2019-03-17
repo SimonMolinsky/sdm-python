@@ -14,7 +14,8 @@ Change by: SM
 ...
 """
 
-from .scripts.prepare_files import get_filelist
+from scripts.prepare_files import get_filelist
+from scripts.prepare_files import create_modis_dataframe
 
 ########################################################################################################################
 ###                                                                                                                  ###
@@ -27,8 +28,8 @@ class ModisProcessing:
     """Class process Modis datasets stored in the given folder. The main method calculates means or medians of the
     given time series. Additional methods retrieves point values for a given coordinates."""
 
-    def __init__(self, folder_with_data=None):
-        self.datafolder = folder_with_data
+    def __init__(self, lookup_table_leap='additional_data/lut_modis/julian_day_calendar_leap.csv',
+                 lookup_table_regular='additional_data/lut_modis/julian_day_calendar_regular.csv'):
         self.tiles_list = []
         self.grouping = {
             'all': self._merge_all,
@@ -37,6 +38,9 @@ class ModisProcessing:
             'by_season': self._merge_by_season_year,
             'full': self._create_full_timeseries
         }
+        self.leap_lut = lookup_table_leap
+        self.regular_lut = lookup_table_regular
+        self.tiles_dict = None
 
     ####################################################################################################################
     ###                                                                                                              ###
@@ -45,7 +49,7 @@ class ModisProcessing:
     ####################################################################################################################
 
     def create_time_series(self, input_directory=None, output_directory='', grouping_method='all',
-                           years_limit=None, months_limit=None, tiles_type=None, indicator=None):
+                           years_limit=None, months_limit=range(1, 13), tiles_type=None, indicator=None):
         """
         Function performs time series calculation, stores calculated bands in the given folder and returns list
         with: [[date 1, file 1], [date 2, file 2], ..., [date 999, file 999]] where date is in the format 'MM-YYYY'
@@ -73,31 +77,37 @@ class ModisProcessing:
         MODIS documentation.
         :return output_files: list with: [[date 1, file 1], [date 2, file 2], ..., [date 999, file 999]]
         """
+
         self.tiles_list = get_filelist(input_directory, tiles_type, '.hdf')
+        df = self._prepare_frame(years_limit, months_limit, tiles_type)
         if grouping_method == 'full':
-            tiles_groups_to_merge = self.grouping[grouping_method]
+            tiles_groups_to_process = self.grouping[grouping_method](df)
         else:
-            tiles_groups_to_merge = self.grouping[grouping_method](years_limit, months_limit)
+            tiles_groups_to_process = self.grouping[grouping_method](df, years_limit, months_limit)
 
-
-
-
-
-
-    def _merge_all(self, years, months):
+    def _merge_all(self, modis_dataframe, years, months):
         pass
 
-    def _merge_by_year(self, years, months):
+    def _merge_by_year(self, modis_dataframe, years, months):
         pass
 
-    def _merge_by_season_all(self, years, months):
+    def _merge_by_season_all(self, modis_dataframe, years, months):
         pass
 
-    def _merge_by_season_year(self, years, months):
+    def _merge_by_season_year(self, modis_dataframe, years, months):
         pass
 
-    def _create_full_timeseries(self):
+    def _create_full_timeseries(self, modis_dataframe):
         pass
+
+    def _prepare_frame(self, years, months, tilename):
+        # Prepare dictionary with tiles for processing
+        modis_data = create_modis_dataframe(self.tiles_list, self.leap_lut, self.regular_lut, tilename,
+                                            sort_by_date=True)
+        modis_data_updated = modis_data[modis_data[3].isin(years)]
+        modis_data_updated = modis_data_updated[modis_data_updated[4].isin(months)]
+        self.tiles_dict = modis_data_updated
+        return modis_data_updated
 
     ####################################################################################################################
     ###                                                                                                              ###
@@ -110,3 +120,9 @@ class ModisProcessing:
 ###                                       DEM AND EO DATA PROCESSING PART                                            ###
 ###                                                                                                                  ###
 ########################################################################################################################
+
+
+if __name__ == '__main__':
+    mc = ModisProcessing()
+    mc.create_time_series(input_directory='../sample_datamodis', output_directory='', years_limit=range(2002, 2011),
+                          months_limit=[7], tiles_type='h18v03', indicator=0)

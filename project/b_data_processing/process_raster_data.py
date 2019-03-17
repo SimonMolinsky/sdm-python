@@ -14,6 +14,7 @@ Change by: SM
 ...
 """
 
+from .scripts.prepare_files import get_filelist
 
 ########################################################################################################################
 ###                                                                                                                  ###
@@ -44,8 +45,44 @@ class ModisProcessing:
     ####################################################################################################################
 
     def create_time_series(self, input_directory=None, output_directory='', grouping_method='all',
-                           years_limit=None, months_limit=None, tiles_type=None):
-        pass
+                           years_limit=None, months_limit=None, tiles_type=None, indicator=None):
+        """
+        Function performs time series calculation, stores calculated bands in the given folder and returns list
+        with: [[date 1, file 1], [date 2, file 2], ..., [date 999, file 999]] where date is in the format 'MM-YYYY'
+        or 'YYYY' and file is returned as a full path to the processed .tif file/
+        :param input_directory: full path to the directory with hdf files,
+        :param output_directory: full path to the directory where files must be stored,
+        :param grouping_method: available methods:
+        'all' -> sums over all tiles and returns their average as a single band,
+        'by_year' -> sums over the years and returns list of tiles average for each year,
+        'by_season_all' -> sums over the four seasons for whole dataset and returns list with four tiles - spring,
+        summer, autumn, winter, where
+        spring = sum of all tiles from March, April, May,
+        summer = sum of all tiles from June, July, August,
+        autumn = sum of all tiles from September, October, November,
+        winter = sum of all tiles from December, January, February,
+        if three tiles for a fiven season are not available then partial data is not included in the sum.
+        'by_season': returns list of lists where each inner list represents one year and records in this list are
+        seasonal sums. Partial years are not included in the output.
+        'full': returns sorted by year and month list in the form:
+        [[tile 1, file 1], [tile 2, file 2], ..., [tile 999, file 999]]
+        :param years_limit: Python range of years to be included in the analysis as a list of years,
+        :param months_limit: Python range of years to be included in the analysis as a list of months from 1 to 12,
+        :param tiles_type: tile name, as example: 'h18v03'
+        :param indicator: indicator number for a given .hdf datafile. Default is 0. Indices may be read from the
+        MODIS documentation.
+        :return output_files: list with: [[date 1, file 1], [date 2, file 2], ..., [date 999, file 999]]
+        """
+        self.tiles_list = get_filelist(input_directory, tiles_type, '.hdf')
+        if grouping_method == 'full':
+            tiles_groups_to_merge = self.grouping[grouping_method]
+        else:
+            tiles_groups_to_merge = self.grouping[grouping_method](years_limit, months_limit)
+
+
+
+
+
 
     def _merge_all(self, years, months):
         pass

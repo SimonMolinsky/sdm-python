@@ -14,6 +14,7 @@ Change by: SM
 ...
 """
 
+import tempfile
 from scripts.prepare_files import get_filelist
 from scripts.prepare_files import create_modis_dataframe
 
@@ -80,13 +81,10 @@ class ModisProcessing:
 
         self.tiles_list = get_filelist(input_directory, tiles_type, '.hdf')
         df = self._prepare_frame(years_limit, months_limit, tiles_type)
-        if grouping_method == 'full':
-            tiles_groups_to_process = self.grouping[grouping_method](df)
-        else:
-            tiles_groups_to_process = self.grouping[grouping_method](df, years_limit, months_limit)
+        tiles_groups_to_process = self.grouping[grouping_method](df)
 
-    def _merge_all(self, modis_dataframe, years, months):
-        pass
+    def _merge_all(self, modis_dataframe):
+        print(modis_dataframe.head(20))
 
     def _merge_by_year(self, modis_dataframe, years, months):
         pass
@@ -108,6 +106,10 @@ class ModisProcessing:
         modis_data_updated = modis_data_updated[modis_data_updated[4].isin(months)]
         self.tiles_dict = modis_data_updated
         return modis_data_updated
+
+    def _open_band(self, band_address, temp_output):
+        """Function opens chosen modis band and save it as a tiff file then returns address to it."""
+        pass
 
     ####################################################################################################################
     ###                                                                                                              ###

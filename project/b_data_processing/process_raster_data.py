@@ -15,6 +15,7 @@ Change by: SM
 """
 
 import os
+import numpy as np
 import tempfile
 import rasterio as rio
 from scripts.prepare_files import get_filelist
@@ -29,7 +30,7 @@ from scripts.process_modis import hdf_to_tiff
 
 def read_band(band_address):
     with rio.open(band_address[0], 'r') as src:
-        band = src.read(1)
+        band = src.read()
     return band
 
 class ModisProcessing:
@@ -110,7 +111,6 @@ class ModisProcessing:
         pass
 
     def _merge_by_season_all(self, modis_dataframe, tiles):
-        bands = []
         spring = [3, 4, 5]
         summer = [6, 7, 8]
         autumn = [9, 10, 11]
@@ -118,8 +118,8 @@ class ModisProcessing:
 
         seasons = [spring, summer, autumn, winter]
         for tile in tiles:
-            print(tile)
             tile_df = modis_dataframe[modis_dataframe['tile type'].isin([tile])]
+            bands = []
             for season in seasons:
                 df = tile_df[tile_df['month'].isin(season)]
                 list_of_files = list(df['filename'])
@@ -154,7 +154,14 @@ class ModisProcessing:
                 if len(bands) == 0:
                     bands.append(read_band(tiff_band)[0])
                 else:
-                    average = (bands[0] + read_band(tiff_band)[0]) / 2
+                    new_band = read_band(tiff_band)[0]
+
+                    average = (bands[0] + new_band) / 2
+                    nb = (new_band==0)
+                    bb = (bands[0]==0)
+                    average[nb] = new_band[nb] + bands[0][nb]
+                    average[bb] = new_band[bb] + bands[0][bb]
+
                     bands[0] = average
         return bands
 
@@ -176,12 +183,13 @@ if __name__ == '__main__':
     merged_tiles = mc.create_time_series(input_directory='../ixodes_data/ixodes_ricinus_modis',
                                          output_directory='', grouping_method='by_season_all',
                                          years_limit=range(2000, 2018),
-                                         tiles_type=['h18v03', 'h18v04', 'h19v03', 'h19c04'], indicator=0)
+                                         tiles_type=['h18v03', 'h18v04', 'h19v03', 'h19v04'], indicator=0)
 
     import matplotlib.pyplot as plt
     for tile in merged_tiles:
-        print(tile)
-        # plt.figure()
-        # plt.imshow(tile[0] * 0.02, cmap='magma')
-        # plt.colorbar()
-        # plt.plot()
+        for t in tile:
+            plt.figure()
+            plt.imshow(t[0] * 0.02, cmap='magma')
+            plt.colorbar()
+            plt.show()
+

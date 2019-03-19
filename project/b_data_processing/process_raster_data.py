@@ -9,7 +9,7 @@ The main purpose of the script is to identify value at a given location. Usually
 into the raster coordinates to protect data from the distortions related to the reprojection between different CRS.
 
 Author: Szymon Moliński, Data Lions
-Last change: 17-03-2019
+Last change: 19-03-2019
 Change by: SM
 ...
 """
@@ -29,7 +29,7 @@ from scripts.process_modis import hdf_to_tiff
 
 def read_band(band_address):
     with rio.open(band_address[0], 'r') as src:
-        band = src.read()
+        band = src.read(1)
     return band
 
 class ModisProcessing:
@@ -40,6 +40,7 @@ class ModisProcessing:
                  lookup_table_regular='additional_data/lut_modis/julian_day_calendar_regular.csv',
                  subdatasets = [0]):
         self.subsets = subdatasets
+        self.tiles_types = []
         self.tiles_list = []
         self.grouping = {
             'all': self._merge_all,
@@ -94,34 +95,40 @@ class ModisProcessing:
         self.tiles_list = get_filelist(input_directory, tiles_type, '.hdf')
         self.input_folder = input_directory
         df = self._prepare_frame(years_limit, months_limit, tiles_type)
-        tiles_groups_to_process = self.grouping[grouping_method](df)
+        merged_tiles = self.grouping[grouping_method](df, tiles_type)
+        return merged_tiles
 
-    def _merge_all(self, modis_dataframe):
-        list_of_files = list(modis_dataframe['filename'])
-
-        for file in list_of_files:
-            with tempfile.TemporaryDirectory() as tmpdict:
-                tiff_band = hdf_to_tiff(self.input_folder, [file], tmpdict, self.subsets)
-
-                # Read band and store it, calculate mean if self.created_bands is not empty
-
-                if len(self.created_bands) == 0:
-                    self.created_bands.append(read_band(tiff_band)[0])
-                else:
-                    average = (self.created_bands[0] + read_band(tiff_band)[0]) / 2
-                    self.created_bands[0] = average
-
+    def _merge_all(self, modis_dataframe, tiles):
+        for tile in tiles:
+            tile_df = modis_dataframe[modis_dataframe['tile type'].isin([tile])]
+            list_of_files = list(tile_df['filename'])
+            self.created_bands.append(self._process_eo(list_of_files))
         return self.created_bands
 
 
-
-    def _merge_by_year(self, modis_dataframe, years, months):
+    def _merge_by_year(self, modis_dataframe, tiles):
         pass
 
-    def _merge_by_season_all(self, modis_dataframe, years, months):
-        pass
+    def _merge_by_season_all(self, modis_dataframe, tiles):
+        bands = []
+        spring = [3, 4, 5]
+        summer = [6, 7, 8]
+        autumn = [9, 10, 11]
+        winter = [1, 2, 12]
 
-    def _merge_by_season_year(self, modis_dataframe, years, months):
+        seasons = [spring, summer, autumn, winter]
+        for tile in tiles:
+            print(tile)
+            tile_df = modis_dataframe[modis_dataframe['tile type'].isin([tile])]
+            for season in seasons:
+                df = tile_df[tile_df['month'].isin(season)]
+                list_of_files = list(df['filename'])
+                mean_band = self._process_eo(list_of_files)
+                bands.append(mean_band)
+            self.created_bands.append(bands)
+        return self.created_bands
+
+    def _merge_by_season_year(self, modis_dataframe):
         pass
 
     def _create_full_timeseries(self, modis_dataframe):
@@ -135,6 +142,21 @@ class ModisProcessing:
         modis_data_updated = modis_data_updated[modis_data_updated['month'].isin(months)]
         self.tiles_dict = modis_data_updated
         return modis_data_updated
+
+    def _process_eo(self, list_of_files):
+        bands = []
+
+        for file in list_of_files:
+            with tempfile.TemporaryDirectory() as tmpdict:
+                tiff_band = hdf_to_tiff(self.input_folder, [file], tmpdict, self.subsets)
+
+                # Read band and store it, calculate mean if self.created_bands is not empty
+                if len(bands) == 0:
+                    bands.append(read_band(tiff_band)[0])
+                else:
+                    average = (bands[0] + read_band(tiff_band)[0]) / 2
+                    bands[0] = average
+        return bands
 
     ####################################################################################################################
     ###                                                                                                              ###
@@ -151,13 +173,15 @@ class ModisProcessing:
 
 if __name__ == '__main__':
     mc = ModisProcessing()
-    mc.create_time_series(input_directory='../sample_datamodis', output_directory='', years_limit=range(2000, 2018),
-                          tiles_type='h18v03', indicator=0)
-    data = mc.created_bands[0]
-    print(data.shape)
+    merged_tiles = mc.create_time_series(input_directory='../ixodes_data/ixodes_ricinus_modis',
+                                         output_directory='', grouping_method='by_season_all',
+                                         years_limit=range(2000, 2018),
+                                         tiles_type=['h18v03', 'h18v04', 'h19v03', 'h19c04'], indicator=0)
 
     import matplotlib.pyplot as plt
-    plt.figure()
-    plt.imshow(data * 0.02, cmap='winter')
-    plt.colorbar()
-    plt.show()
+    for tile in merged_tiles:
+        print(tile)
+        # plt.figure()
+        # plt.imshow(tile[0] * 0.02, cmap='magma')
+        # plt.colorbar()
+        # plt.plot()

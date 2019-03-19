@@ -14,9 +14,12 @@ Change by: SM
 ...
 """
 
+import os
 import tempfile
+import rasterio as rio
 from scripts.prepare_files import get_filelist
 from scripts.prepare_files import create_modis_dataframe
+from scripts.process_modis import hdf_to_tiff
 
 ########################################################################################################################
 ###                                                                                                                  ###
@@ -24,13 +27,19 @@ from scripts.prepare_files import create_modis_dataframe
 ###                                                                                                                  ###
 ########################################################################################################################
 
+def read_band(band_address):
+    with rio.open(band_address[0], 'r') as src:
+        band = src.read()
+    return band
 
 class ModisProcessing:
     """Class process Modis datasets stored in the given folder. The main method calculates means or medians of the
     given time series. Additional methods retrieves point values for a given coordinates."""
 
     def __init__(self, lookup_table_leap='additional_data/lut_modis/julian_day_calendar_leap.csv',
-                 lookup_table_regular='additional_data/lut_modis/julian_day_calendar_regular.csv'):
+                 lookup_table_regular='additional_data/lut_modis/julian_day_calendar_regular.csv',
+                 subdatasets = [0]):
+        self.subsets = subdatasets
         self.tiles_list = []
         self.grouping = {
             'all': self._merge_all,
@@ -41,7 +50,10 @@ class ModisProcessing:
         }
         self.leap_lut = lookup_table_leap
         self.regular_lut = lookup_table_regular
+        self.input_folder = ''
         self.tiles_dict = None
+        self.created_bands = []
+        self.temporary_band = None
 
     ####################################################################################################################
     ###                                                                                                              ###
@@ -80,11 +92,28 @@ class ModisProcessing:
         """
 
         self.tiles_list = get_filelist(input_directory, tiles_type, '.hdf')
+        self.input_folder = input_directory
         df = self._prepare_frame(years_limit, months_limit, tiles_type)
         tiles_groups_to_process = self.grouping[grouping_method](df)
 
     def _merge_all(self, modis_dataframe):
-        print(modis_dataframe.head(20))
+        list_of_files = list(modis_dataframe['filename'])
+
+        for file in list_of_files:
+            with tempfile.TemporaryDirectory() as tmpdict:
+                tiff_band = hdf_to_tiff(self.input_folder, [file], tmpdict, self.subsets)
+
+                # Read band and store it, calculate mean if self.created_bands is not empty
+
+                if len(self.created_bands) == 0:
+                    self.created_bands.append(read_band(tiff_band)[0])
+                else:
+                    average = (self.created_bands[0] + read_band(tiff_band)[0]) / 2
+                    self.created_bands[0] = average
+
+        return self.created_bands
+
+
 
     def _merge_by_year(self, modis_dataframe, years, months):
         pass
@@ -102,14 +131,10 @@ class ModisProcessing:
         # Prepare dictionary with tiles for processing
         modis_data = create_modis_dataframe(self.tiles_list, self.leap_lut, self.regular_lut, tilename,
                                             sort_by_date=True)
-        modis_data_updated = modis_data[modis_data[3].isin(years)]
-        modis_data_updated = modis_data_updated[modis_data_updated[4].isin(months)]
+        modis_data_updated = modis_data[modis_data['year'].isin(years)]
+        modis_data_updated = modis_data_updated[modis_data_updated['month'].isin(months)]
         self.tiles_dict = modis_data_updated
         return modis_data_updated
-
-    def _open_band(self, band_address, temp_output):
-        """Function opens chosen modis band and save it as a tiff file then returns address to it."""
-        pass
 
     ####################################################################################################################
     ###                                                                                                              ###
@@ -126,5 +151,13 @@ class ModisProcessing:
 
 if __name__ == '__main__':
     mc = ModisProcessing()
-    mc.create_time_series(input_directory='../sample_datamodis', output_directory='', years_limit=range(2002, 2011),
-                          months_limit=[7], tiles_type='h18v03', indicator=0)
+    mc.create_time_series(input_directory='../sample_datamodis', output_directory='', years_limit=range(2000, 2018),
+                          tiles_type='h18v03', indicator=0)
+    data = mc.created_bands[0]
+    print(data.shape)
+
+    import matplotlib.pyplot as plt
+    plt.figure()
+    plt.imshow(data * 0.02, cmap='winter')
+    plt.colorbar()
+    plt.show()

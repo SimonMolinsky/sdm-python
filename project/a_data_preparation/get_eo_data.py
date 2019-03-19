@@ -122,7 +122,7 @@ class ModisRequest:
         tiles_text = input(tiles_text)
 
         if tiles_text == 'd':
-            tiles = ['h18v03,h18v04,h19v03,h19v04']
+            tiles = 'h18v03,h18v04,h19v03,h19v04'
         else:
             tiles = tiles_text
 

@@ -90,7 +90,8 @@ def create_modis_dataframe(hdf_files, lookup_table_leap, lookup_table_regular, t
     data = []
     for f in hdf_files:
         data.append(julian_date_to_month(f, lookup_table_leap, lookup_table_regular, tilenames))
-    df = pd.DataFrame(data)
+    df = pd.DataFrame(data, columns=['filename', 'tile type', 'acquisition time', 'year', 'month'])
     if sort_by_date:
-        df = df.sort_values([2, 0])
+        df = df.sort_values(['acquisition time', 'filename'])
+    df.drop_duplicates(inplace=True)
     return df

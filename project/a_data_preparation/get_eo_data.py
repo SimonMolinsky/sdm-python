@@ -4,9 +4,9 @@ library: http://www.pymodis.org/.
 
 Class retrieves:
 1. MOD11B3: MODIS/Terra Land Surface Temperature and Emissivity Monthly L3 Global 6 km Grid SIN V006
-- https://lpdaac.usgs.gov/dataset_discovery/modis/modis_products_table/mod11b3_v006
+- https://lpdaac.usgs.gov/products/mod11b3v006/
 2. MOD13C2: MODIS/Terra Vegetation Indices Monthly L3 Global 0.05 Deg CMG V006
-- https://lpdaac.usgs.gov/dataset_discovery/modis/modis_products_table/mod13c2_v006
+- https://lpdaac.usgs.gov/products/mod13c2v006/
 
 in the HDF format
 
